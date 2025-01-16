@@ -6,7 +6,7 @@
 #    /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222
 # 3. Run the FastAPI server:
 #    uvicorn main:app --host 127.0.0.1 --port 8888 --reload --workers 1
-# make sure you set OPENAI_API_KEY=yourOpenAIKeyHere to .env file
+# make sure you set GOOGLE_API_KEY=yourGEMINIKeyHere to .env file
 
 import os
 os.environ["PYDANTIC_V1_COMPAT_MODE"] = "true"
@@ -25,8 +25,8 @@ from datetime import datetime
 from typing import List, Optional
 from enum import Enum
 from fastapi.middleware.cors import CORSMiddleware
-
-
+import google.generativeai as genai
+from typing import Optional, List, Dict
 
 # ----------------------------
 # 1. Configure Logging
@@ -39,12 +39,23 @@ logger = logging.getLogger(__name__)
 # ----------------------------
 load_dotenv()
 
-# Verify the OpenAI API key is loaded
-api_key = os.getenv("OPENAI_API_KEY")
-if not api_key:
-    raise ValueError(
-        "OPENAI_API_KEY not found in .env file. Make sure your .env file is set up correctly."
-    )
+# Create a wrapper class for Gemini to match OpenAI's interface
+class GeminiWrapper:
+    def __init__(self, model):
+        self.model = model
+
+    async def __call__(self, messages, **kwargs):
+        # Convert the messages to a format Gemini understands
+        prompt = " ".join([msg["content"] for msg in messages])
+        response = self.model.generate_content(prompt)
+        return {"content": response.text}
+
+# Initialize Gemini
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+if not GOOGLE_API_KEY:
+    raise ValueError("GOOGLE_API_KEY not found in .env file")
+genai.configure(api_key=GOOGLE_API_KEY)
+gemini_model = GeminiWrapper(genai.GenerativeModel('gemini-2.0-flash-exp'))
 
 # ----------------------------
 # 3. Initialize FastAPI App
@@ -93,11 +104,6 @@ task_records: List[TaskRecord] = []
 task_id_counter: int = 0
 task_lock = asyncio.Lock()  # To manage concurrent access to task_records
 
-# ----------------------------
-# 6. Define Background Task Function
-# ----------------------------
-
-
 def get_chrome_path() -> str:
     """
     Returns the most common Chrome executable path based on the operating system.
@@ -127,8 +133,6 @@ def get_chrome_path() -> str:
     
     return chrome_path
 
-
-
 async def execute_task(task_id: int, task: str):
     """
     Background task to execute the AI agent.
@@ -153,10 +157,9 @@ async def execute_task(task_id: int, task: str):
         logger.info(f"Task ID {task_id}: Initializing new browser instance.")
         browser = Browser(
             config=BrowserConfig(
-                chrome_instance_path=get_chrome_path(),  # Update if different
-                disable_security=True,
-                headless=False,  # Set to True for headless mode
-                # Removed 'remote_debugging_port' as it caused issues
+                chrome_instance_path=get_chrome_path(), # Update if different
+                disable_security=True, 
+                headless=False # Set to True for headless mode
             )
         )
         logger.info(f"Task ID {task_id}: Browser initialized successfully.")
@@ -164,7 +167,7 @@ async def execute_task(task_id: int, task: str):
         # Initialize and run the Agent with the new browser instance
         agent = Agent(
             task=task,
-            llm=ChatOpenAI(model="gpt-4o", api_key=api_key),
+            llm=gemini_model,  # Using Gemini model
             browser=browser
         )
         logger.info(f"Task ID {task_id}: Agent initialized. Running task.")
@@ -194,6 +197,7 @@ async def execute_task(task_id: int, task: str):
                     record.duration = (record.end_time - record.start_time).total_seconds()
                     record.error = str(e)
                     break
+
     finally:
         # Ensure that the browser is closed in case of failure or success
         if browser:
@@ -204,6 +208,11 @@ async def execute_task(task_id: int, task: str):
             except Exception as close_e:
                 logger.error(f"Task ID {task_id}: Error closing browser: {close_e}")
                 logger.error(traceback.format_exc())
+
+@app.on_event("startup")
+async def startup_event():
+    """No global browser instance initialization"""
+    logger.info("No global browser instance initialized")
 
 # ----------------------------
 # 7. Define POST /run Endpoint

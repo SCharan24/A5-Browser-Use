@@ -39,4 +39,7 @@ node_modules/
 *.log
 logs/
 
+#agent_history.gif
 Python_server/agent_history.gif
+agent_history.gif
+*agent_history.gif

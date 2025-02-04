@@ -1,10 +1,10 @@
 # A5-Browser-Use Chrome Extension and Server for Agentic AI Workflows
 
-Your commands control the browser - made easy.
+Your commands control the browser - made easy. Supports various large language model providers, including OpenAI, Gemini, and Ollama.
 
 <img src="./attached_assets/screenshot1.png" alt="Screenshot of the Chrome Extension" style="display: block; width: 100%; max-width: none;" />
 
-**A5** is an open-source project that integrates the powerful [**Browser Use** Python library](https://github.com/browser-use/browser-use) with a user-friendly RESTful API and Chrome extension. It aims to simplify agentic AI-powered browser automation tasks by providing an all-in-one solution that requires minimal setup, making it accessible to both developers and non-developers alike.
+**A5** is an open-source project that integrates the powerful [**Browser Use** Python library](https://github.com/browser-use/browser-use) (along with [Gradio-AI](https://github.com/AK391/ai-gradio) support coming soon) with a user-friendly RESTful API and Chrome extension. It aims to simplify agentic AI-powered browser automation tasks by providing an all-in-one solution that requires minimal setup, making it accessible to both developers and non-developers alike.
 
 ### Chrome Extension Demo:
 <img src="./attached_assets/demo1.gif" alt="Chrome Extension Demo Gif" style="display: block; width: 100%; max-width: none;" />
@@ -17,19 +17,19 @@ This project is **experimental**. You can run it easily on macOS by using the ex
 
 ### WARNING: Important before proceeding
 
-Make sure to start Chrome in debug mode or you will get irratic behavior (many browser windows opening and closing). Instructions are below on how to do that based on your operating system. Additionally, you will need to create a .env file in the Python_server folder with your OpenAI or other provider credentials. Currently, only the OpenAI API is supported; however, support for other providers are in the works. Pull requests are welcomed!
+Make sure to start Chrome in debug mode or you will get irratic behavior (many browser windows opening and closing). Instructions are below on how to do that based on your operating system. Additionally, you will need to create a .env file in the Python_server folder with your OpenAI, Gemini or other provider credentials (example of the .env format is in Python_server/.env.example).
 
 
 ### Quick Start (macOS)
 
-Note: Mac Users *should* be able to run the executable (*after making sure to start Chrome in debug mode and setting your .env with your relevant API key information, per the warning above*) located in the `Python_server/dist` folder by navigating to the Python_server/dist folder and running  `./a5browseruse`. Again, you will need to create a .env file in the `Python_server/dist` folder with your OpenAI or other provider credentials if you are taking this route. An example of the format is available in the .env.example file.
+Note: Mac Users *should* be able to run the executable (*after making sure to start Chrome in debug mode and setting your .env with your relevant API key information, per the warning above*) located in the `Python_server/dist` folder by navigating to the Python_server/dist folder and running  `./a5browseruse` (This executable supports OpenAI). The instructions below will get you started with Ollama and Gemini if you prefer these providers. Again, you will need to create a .env file in the `Python_server/dist` folder with your OpenAI or other provider credentials if you are taking this route. An example of the format is available in the .env.example file. 
 
 However, if this does not work or alternatively, you can follow these steps to set it up manually:
 
 1. **Close all Chrome windows completely.**  
 2. *IMPORTANT* : **Start Chrome with Remote Debugging Enabled** (required by Browser Use):
    ```bash
-   /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --profile-directory="Default"
+   /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --profile-directory="Default" --disable-features=BlockInsecurePrivateNetworkRequests
    ```
 3. Make sure you have **Python 3.11** or higher installed.
 
@@ -39,15 +39,30 @@ However, if this does not work or alternatively, you can follow these steps to s
    ```
 5. Close Chrome, and start Chrome with remote debugging:
    ```bash
-   /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --profile-directory="Default"
+   /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --profile-directory="Default" --disable-features=BlockInsecurePrivateNetworkRequests
 
    ```
 6. You will need to create a .env file in the `Python_server/` folder with your OpenAI or other provider credentials. An example of the format is available in the .env.example file.
 
 7. In a separate terminal window, still in `Python_server`, start the server:
+   For OpenAI:
    ```bash
    uvicorn main:app --host 127.0.0.1 --port 8888 --workers 1
    ```
+
+   For Gemini:
+   ```bash
+   uvicorn mainGemini:app --host 127.0.0.1 --port 8888 --workers 1
+   ```
+
+   For Ollama:
+   ```bash
+   uvicorn mainOllama:app --host 127.0.0.1 --port 8888 --workers 1
+   ```
+   Note: if you would like to use Ollama to save on costs (or just prefer Ollama), you will need to [install Ollama on your Desktop](https://ollama.com/download) and make sure it is running on your local machine. You should be able to call the `ollama list` command in your terminal and see a list of the models you have installed. You will need qwen2.5:32b-instruct-q4_K_M in order for your automoted browser-usage to work well. You can change which model is used by editing Python_server/mainOllama.py. 
+
+
+   
 8. Once the server is running, open [http://localhost:8888/lastResponses/](http://localhost:8888/lastResponses/) to verify it’s active.
 
 ### Quick Start (Linux and Windows)
@@ -56,12 +71,12 @@ However, if this does not work or alternatively, you can follow these steps to s
 2. **Start Chrome with Remote Debugging Enabled**:
    - **Windows** (in Command Prompt or PowerShell):
      ```cmd
-     "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --profile-directory="Default"
+     "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --profile-directory="Default" --disable-features=BlockInsecurePrivateNetworkRequests
 
      ```
    - **Linux** (in Terminal):
      ```bash
-     google-chrome --remote-debugging-port=9222 --profile-directory="Default"
+     google-chrome --remote-debugging-port=9222 --profile-directory="Default" --disable-features=BlockInsecurePrivateNetworkRequests
 
      ```
 
@@ -69,11 +84,22 @@ However, if this does not work or alternatively, you can follow these steps to s
 
 
 4. **Run the Python Server** (similarly as macOS):
+
+   For OpenAI:
    ```bash
-   cd Python_server
-   pip install -r requirements.txt
    uvicorn main:app --host 127.0.0.1 --port 8888 --workers 1
    ```
+
+   For Gemini:
+   ```bash
+   uvicorn mainGemini:app --host 127.0.0.1 --port 8888 --workers 1
+   ```
+
+   For Ollama:
+   ```bash
+   uvicorn mainOllama:app --host 127.0.0.1 --port 8888 --workers 1
+   ```
+
 5. **Access the API** at [http://localhost:8888/lastResponses/](http://localhost:8888/lastResponses/).
 
 > If you need a standalone executable on Windows or Linux, you’ll have to build it **on** that platform (since PyInstaller doesn’t support cross-compiling). The resulting file will be in the `dist` folder for that OS.
@@ -146,25 +172,38 @@ cd A5-Browser-Use
 3. Close *all instances* of Chrome, then start it with remote debugging:
    - **macOS**:
      ```bash
-     /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --profile-directory="Default"
+     /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --profile-directory="Default" --disable-features=BlockInsecurePrivateNetworkRequests
 
      ```
    - **Windows**:
      ```cmd
-     "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --profile-directory="Default"
+     "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --profile-directory="Default" --disable-features=BlockInsecurePrivateNetworkRequests
 
      ```
    - **Linux**:
      ```bash
-     google-chrome --remote-debugging-port=9222 --profile-directory="Default"
+     google-chrome --remote-debugging-port=9222 --profile-directory="Default" --disable-features=BlockInsecurePrivateNetworkRequests
 
      ```
 4. You will need to create a .env file in the `Python_server/` folder with your OpenAI or other provider credentials. An example of the format is available in the .env.example file.
 
 5. In a new terminal window (while Chrome is running in remote debugging mode), start the FastAPI server:
+
+   For OpenAI:
    ```bash
-   uvicorn main:app --host 127.0.0.1 --port 8888 --workers=1
+   uvicorn main:app --host 127.0.0.1 --port 8888 --workers 1
    ```
+
+   For Gemini:
+   ```bash
+   uvicorn mainGemini:app --host 127.0.0.1 --port 8888 --workers 1
+   ```
+
+   For Ollama:
+   ```bash
+   uvicorn mainOllama:app --host 127.0.0.1 --port 8888 --workers 1
+   ```
+
 6. Go to [http://localhost:8888/lastResponses](http://localhost:8888/lastResponses/) in your browser to confirm the server is running.
 
 ### Install the Chrome Extension
@@ -191,7 +230,7 @@ After the setup:
 
 ## Contributing
 
-We welcome contributions from the community! In particular, if you’d like to add support for additional AI providers beyond OpenAI, **please open a Pull Request**.
+We welcome contributions from the community! In particular, if you’d like to add support for additional AI providers beyond OpenAI, Gemini and Ollama, **please open a Pull Request** or open an Issue.
 
 1. **Fork the Project**
 2. **Create a new branch** (`git checkout -b feature/YourFeature`)
